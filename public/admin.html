@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Admin — Editor</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600&family=Work+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/admin.css">
+</head>
+<body>
+
+<!-- PANTALLA DE ACCESO -->
+<div id="gate" class="gate">
+  <form id="gate-form" class="gate-card">
+    <p class="gate-heart">♥</p>
+    <h1>Panel privado</h1>
+    <p class="gate-sub">Escribe la contraseña para editar la página.</p>
+    <input id="gate-password" type="password" placeholder="Contraseña" autocomplete="current-password" required>
+    <button type="submit" class="btn">Entrar</button>
+    <p id="gate-error" class="gate-error" hidden>Contraseña incorrecta.</p>
+  </form>
+</div>
+
+<!-- PANEL -->
+<div id="panel" class="panel" hidden>
+  <header class="panel-header">
+    <h1>Editar página</h1>
+    <div class="panel-actions">
+      <span id="save-status" class="save-status"></span>
+      <button id="save-btn" class="btn btn-save">Guardar cambios</button>
+      <a href="/" target="_blank" class="btn btn-ghost">Ver página</a>
+    </div>
+  </header>
+
+  <main class="panel-body">
+
+    <section class="card">
+      <h2>La pareja</h2>
+      <label>Tu nombre <input id="f-you" type="text"></label>
+      <label>Nombre de tu amor <input id="f-love" type="text"></label>
+      <label>Frase de bienvenida <input id="f-greeting" type="text" placeholder="Un regalo para ti"></label>
+    </section>
+
+    <section class="card">
+      <h2>Video (opcional)</h2>
+      <label>Enlace de YouTube <input id="f-video" type="url" placeholder="https://www.youtube.com/watch?v=..."></label>
+    </section>
+
+    <section class="card">
+      <h2>Carta privada</h2>
+      <label>Texto de la carta <textarea id="f-letter" rows="6"></textarea></label>
+    </section>
+
+    <section class="card">
+      <h2>Galería de fotos</h2>
+      <div id="gallery-list" class="repeat-list"></div>
+      <label class="file-label">
+        <input id="gallery-file" type="file" accept="image/*" multiple hidden>
+        <span class="btn btn-add">+ Agregar fotos</span>
+      </label>
+    </section>
+
+    <section class="card">
+      <h2>Lo que más amo de ti</h2>
+      <div id="lovelist-list" class="repeat-list repeat-list--text"></div>
+      <button type="button" class="btn btn-add" data-add="loveList">+ Agregar frase</button>
+    </section>
+
+    <section class="card">
+      <h2>Nuestro lugar</h2>
+      <label>Título <input id="f-place-title" type="text" placeholder="Nuestro lugar"></label>
+      <label>Texto <textarea id="f-place-text" rows="3"></textarea></label>
+      <label>Foto
+        <input id="f-place-image-file" type="file" accept="image/*" hidden>
+        <span class="btn btn-add" id="f-place-image-btn">Elegir foto</span>
+      </label>
+      <div id="f-place-image-preview" class="image-preview"></div>
+    </section>
+
+    <section class="card">
+      <h2>Nuestra lista (cosas por vivir juntos)</h2>
+      <div id="bucketlist-list" class="repeat-list repeat-list--text"></div>
+      <button type="button" class="btn btn-add" data-add="bucketList">+ Agregar item</button>
+    </section>
+
+    <section class="card">
+      <h2>Vales de amor</h2>
+      <div id="coupons-list" class="repeat-list repeat-list--text"></div>
+      <button type="button" class="btn btn-add" data-add="coupons">+ Agregar vale</button>
+    </section>
+
+    <section class="card">
+      <h2>Ruleta</h2>
+      <p class="hint">Agrega al menos 2 opciones.</p>
+      <div id="roulette-list" class="repeat-list repeat-list--text"></div>
+      <button type="button" class="btn btn-add" data-add="roulette">+ Agregar opción</button>
+    </section>
+
+    <section class="card">
+      <h2>Contador de tiempo juntos</h2>
+      <label>Fecha de inicio <input id="f-anniversary-date" type="date"></label>
+      <label>Etiqueta <input id="f-anniversary-label" type="text" placeholder="Llevamos juntos"></label>
+    </section>
+
+    <section class="card">
+      <h2>La gran pregunta</h2>
+      <label>Pregunta <input id="f-question-text" type="text" placeholder="¿Quieres ser mi novia?"></label>
+      <label>Texto botón Sí <input id="f-question-yes" type="text"></label>
+      <label>Texto botón No <input id="f-question-no" type="text"></label>
+      <label>Título al aceptar <input id="f-question-success-title" type="text"></label>
+      <label>Texto al aceptar <textarea id="f-question-success-text" rows="2"></textarea></label>
+    </section>
+
+    <section class="card">
+      <h2>Cierre</h2>
+      <label>Mensaje final <textarea id="f-closing-text" rows="4"></textarea></label>
+      <label>Firma <input id="f-closing-signature" type="text"></label>
+    </section>
+
+    <section class="card">
+      <h2>Música de fondo</h2>
+      <label class="checkbox-row"><input id="f-music-enabled" type="checkbox"> Mostrar botón de música en la página</label>
+    </section>
+
+  </main>
+</div>
+
+<div id="toast" class="toast" hidden></div>
+
+<script src="js/admin.js"></script>
+</body>
+</html>

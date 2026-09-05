@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<title>Para ti</title>
+<meta name="description" content="Un regalo hecho con amor.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,500&family=Parisienne&family=Work+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<canvas id="petals-canvas" aria-hidden="true"></canvas>
+<canvas id="confetti-canvas" aria-hidden="true"></canvas>
+
+<button id="music-toggle" class="music-toggle" aria-label="Activar música" aria-pressed="false">
+  <span class="music-icon">♪</span>
+</button>
+
+<div id="loading-screen" class="loading-screen">
+  <div class="loading-heart">♥</div>
+</div>
+
+<main id="app" class="app" hidden>
+
+  <!-- HERO / SOBRE -->
+  <section id="section-hero" class="hero">
+    <div class="hero-decor" aria-hidden="true">
+      <span class="hero-heart h1">♥</span>
+      <span class="hero-heart h2">♥</span>
+      <span class="hero-heart h3">♥</span>
+    </div>
+    <p class="hero-eyebrow" id="hero-greeting">Un regalo para ti</p>
+    <h1 class="hero-names">
+      <span id="hero-name-love">—</span><span class="amp">&amp;</span><span id="hero-name-you">—</span>
+    </h1>
+    <button id="envelope-btn" class="envelope" aria-label="Abrir sobre">
+      <span class="envelope-body">
+        <span class="envelope-flap"></span>
+        <span class="envelope-heart">♥</span>
+      </span>
+      <span class="envelope-label">Toca para abrir</span>
+    </button>
+  </section>
+
+  <!-- contenido revelado tras abrir el sobre -->
+  <div id="reveal-content" class="reveal-content">
+
+    <!-- VIDEO -->
+    <section id="section-video" class="section section-video" hidden>
+      <div class="section-inner">
+        <p class="section-kicker">Nuestra canción</p>
+        <div class="video-frame">
+          <iframe id="video-frame" src="" title="Video" frameborder="0"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            allowfullscreen loading="lazy"></iframe>
+        </div>
+      </div>
+    </section>
+
+    <!-- CARTA PRIVADA -->
+    <section id="section-letter" class="section section-letter">
+      <div class="section-inner">
+        <p class="section-kicker">Mensaje privado</p>
+        <button id="letter-open-btn" class="letter-open-btn">Abrir carta</button>
+        <div id="letter-body" class="letter-body" hidden>
+          <p id="letter-text" class="letter-text"></p>
+          <p class="letter-sign">Con amor,<br><span id="letter-signature">—</span></p>
+        </div>
+      </div>
+    </section>
+
+    <!-- GALERÍA -->
+    <section id="section-gallery" class="section section-gallery" hidden>
+      <div class="section-inner">
+        <p class="section-kicker">Nuestros momentos</p>
+        <div id="gallery-track" class="gallery-track"></div>
+        <div class="gallery-controls">
+          <button id="gallery-prev" class="gallery-nav" aria-label="Anterior">‹</button>
+          <div id="gallery-dots" class="gallery-dots"></div>
+          <button id="gallery-next" class="gallery-nav" aria-label="Siguiente">›</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- LO QUE AMO DE TI -->
+    <section id="section-lovelist" class="section section-lovelist" hidden>
+      <div class="section-inner">
+        <p class="section-kicker">Lo que más amo de <span id="lovelist-name">ti</span></p>
+        <ul id="lovelist-items" class="lovelist-items"></ul>
+      </div>
+    </section>
+
+    <!-- NUESTRO LUGAR -->
+    <section id="section-place" class="section section-place" hidden>
+      <div class="section-inner section-inner--split">
+        <div class="place-text">
+          <p class="section-kicker">Dónde empezó todo</p>
+          <h2 id="place-title" class="section-title">Nuestro lugar</h2>
+          <p id="place-text"></p>
+        </div>
+        <div class="place-image-wrap">
+          <img id="place-image" class="place-image" alt="" />
+        </div>
+      </div>
+    </section>
+
+    <!-- NUESTRA LISTA -->
+    <section id="section-bucketlist" class="section section-bucketlist" hidden>
+      <div class="section-inner">
+        <p class="section-kicker">Cosas por vivir juntos</p>
+        <h2 class="section-title">Nuestra lista</h2>
+        <ul id="bucketlist-items" class="bucketlist-items"></ul>
+      </div>
+    </section>
+
+    <!-- VALES DE AMOR -->
+    <section id="section-coupons" class="section section-coupons" hidden>
+      <div class="section-inner">
+        <p class="section-kicker">Nuestros vales de amor</p>
+        <h2 class="section-title">Canjéalos cuando quieras</h2>
+        <p class="section-note">Cada uno se puede usar una sola vez.</p>
+        <div id="coupons-grid" class="coupons-grid"></div>
+      </div>
+    </section>
+
+    <!-- RULETA -->
+    <section id="section-roulette" class="section section-roulette" hidden>
+      <div class="section-inner">
+        <p class="section-kicker">Para ti</p>
+        <h2 class="section-title">La ruleta tiene una pregunta</h2>
+        <p class="section-note">Gira… y responde con el corazón</p>
+        <div class="roulette-wrap">
+          <div class="roulette-pointer" aria-hidden="true">♥</div>
+          <div id="roulette-wheel" class="roulette-wheel"></div>
+        </div>
+        <button id="roulette-spin" class="btn-primary">Girar</button>
+        <p class="roulette-hint">Puedes girar las veces que quieras 😉</p>
+      </div>
+    </section>
+
+    <!-- CONTADOR DE DÍAS -->
+    <section id="section-counter" class="section section-counter" hidden>
+      <div class="section-inner">
+        <p id="counter-label" class="section-kicker">Llevamos juntos</p>
+        <div class="counter-numbers" id="counter-numbers"></div>
+      </div>
+    </section>
+
+    <!-- LA GRAN PREGUNTA -->
+    <section id="section-question" class="section section-question" hidden>
+      <div class="section-inner">
+        <p class="section-kicker">Tengo algo que preguntarte</p>
+        <h2 id="question-text" class="question-text">♥</h2>
+        <div class="question-buttons">
+          <button id="question-yes" class="btn-primary btn-yes">Sí</button>
+          <button id="question-no" class="btn-ghost btn-no">No</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- CIERRE -->
+    <section id="section-closing" class="section section-closing" hidden>
+      <div class="section-inner">
+        <span class="closing-heart" aria-hidden="true">♥</span>
+        <p id="closing-text" class="closing-text"></p>
+        <p class="closing-sign">Con cariño,<br><span id="closing-signature" class="closing-signature-name">—</span></p>
+        <p class="closing-forever">Para siempre</p>
+      </div>
+    </section>
+
+  </div>
+</main>
+
+<!-- MODAL genérico (pregunta / vale canjeado) -->
+<div id="modal" class="modal" hidden>
+  <div class="modal-card">
+    <div id="modal-heart" class="modal-heart">♥</div>
+    <h3 id="modal-title" class="modal-title"></h3>
+    <p id="modal-text" class="modal-text"></p>
+    <button id="modal-close" class="btn-primary">Cerrar</button>
+  </div>
+</div>
+
+<div id="error-screen" class="error-screen" hidden>
+  <p>No pudimos cargar esta página. Intenta de nuevo en un momento.</p>
+</div>
+
+<script src="js/sound.js"></script>
+<script src="js/main.js"></script>
+</body>
+</html>
