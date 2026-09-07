@@ -90,6 +90,22 @@
     setTimeout(tryUnmute, 800);
     setTimeout(tryUnmute, 1600);
     setTimeout(tryUnmute, 2600);
+
+    // Respaldo visible: algunos navegadores (sobre todo iOS/Safari) bloquean
+    // el audio automático aunque se intente activarlo desde JS. Mostramos un
+    // botón para activarlo con un toque directo, que sí cuenta como gesto
+    // de usuario válido y garantiza que el sonido funcione.
+    const unmuteBtn = $("#video-unmute");
+    if (unmuteBtn) {
+      setTimeout(() => { unmuteBtn.hidden = false; }, 1200);
+      unmuteBtn.addEventListener("click", () => {
+        try {
+          frame.contentWindow.postMessage(JSON.stringify({ event: "command", func: "unMute", args: [] }), "*");
+          frame.contentWindow.postMessage(JSON.stringify({ event: "command", func: "playVideo", args: [] }), "*");
+        } catch (e) { /* no-op */ }
+        unmuteBtn.hidden = true;
+      });
+    }
   }
 
   function extractYoutubeId(url) {
@@ -130,8 +146,20 @@
     photos.forEach((p, i) => {
       const slide = document.createElement("div");
       slide.className = "gallery-slide";
-      slide.innerHTML = `<img src="${p.url}" alt="${escapeAttr(p.caption || "")}" loading="lazy">
-        ${p.caption ? `<p class="gallery-caption">${escapeHtml(p.caption)}</p>` : ""}`;
+
+      const img = document.createElement("img");
+      img.src = p.url || "";
+      img.alt = p.caption || "";
+      img.loading = "lazy";
+      slide.appendChild(img);
+
+      if (p.caption) {
+        const caption = document.createElement("p");
+        caption.className = "gallery-caption";
+        caption.textContent = p.caption;
+        slide.appendChild(caption);
+      }
+
       track.appendChild(slide);
 
       const dot = document.createElement("span");
@@ -363,9 +391,14 @@
       LoveSound.open();
       startVideoPlayback();
       setTimeout(() => {
-        $("#section-hero").style.transition = "opacity .6s ease";
-        $("#section-hero").style.opacity = "0";
+        const hero = $("#section-hero");
+        hero.style.transition = "opacity .6s ease";
+        hero.style.opacity = "0";
         setTimeout(() => {
+          // display:none además de opacity:0, para que no quede un bloque
+          // en blanco del alto de toda la pantalla si se hace scroll hacia
+          // arriba después de abrir el sobre.
+          hero.style.display = "none";
           $("#reveal-content").hidden = false;
           $("#reveal-content").scrollIntoView({ behavior: "smooth" });
           initScrollReveal();
@@ -503,29 +536,35 @@
   /* ---------------- boot ---------------- */
 
   async function boot() {
-    initPetals();
-    await loadContent();
+    try {
+      initPetals();
+      await loadContent();
 
-    renderHero();
-    renderVideo();
-    renderLetter();
-    renderGallery();
-    renderLoveList();
-    renderPlace();
-    renderBucketList();
-    renderCoupons();
-    renderRoulette();
-    renderCounter();
-    renderQuestion();
-    renderClosing();
+      renderHero();
+      renderVideo();
+      renderLetter();
+      renderGallery();
+      renderLoveList();
+      renderPlace();
+      renderBucketList();
+      renderCoupons();
+      renderRoulette();
+      renderCounter();
+      renderQuestion();
+      renderClosing();
 
-    setupEnvelope();
-    setupLetter();
-    setupMusicToggle();
-    setupModal();
+      setupEnvelope();
+      setupLetter();
+      setupMusicToggle();
+      setupModal();
 
-    $("#loading-screen").style.display = "none";
-    $("#app").hidden = false;
+      $("#loading-screen").style.display = "none";
+      $("#app").hidden = false;
+    } catch (err) {
+      console.error("Error al iniciar la página:", err);
+      $("#loading-screen").style.display = "none";
+      $("#error-screen").hidden = false;
+    }
   }
 
   document.addEventListener("DOMContentLoaded", boot);
