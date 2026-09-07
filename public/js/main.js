@@ -58,13 +58,61 @@
     if (!url) return;
     const id = extractYoutubeId(url);
     if (!id) return;
-    $("#video-frame").src = `https://www.youtube.com/embed/${id}?rel=0&modestbranding=1`;
+    const frame = $("#video-frame");
+    frame.dataset.embedId = id;
+    frame.dataset.embedStart = extractYoutubeStart(url);
     showSection("section-video");
+  }
+
+  /**
+   * Carga el iframe de YouTube y arranca la reproducción automáticamente.
+   * Se llama en el mismo clic con el que se abre el sobre, para poder
+   * aprovechar ese gesto del usuario y que los navegadores permitan
+   * reproducir con sonido (si no, sólo permiten autoplay silenciado).
+   */
+  function startVideoPlayback() {
+    const frame = $("#video-frame");
+    const id = frame?.dataset.embedId;
+    if (!id || frame.src) return; // ya cargado o no hay video configurado
+
+    const start = parseInt(frame.dataset.embedStart || "0", 10);
+    const startParam = start > 0 ? `&start=${start}` : "";
+    const origin = encodeURIComponent(window.location.origin);
+    frame.src = `https://www.youtube.com/embed/${id}?rel=0&modestbranding=1&autoplay=1&mute=1&playsinline=1&enablejsapi=1&origin=${origin}${startParam}`;
+
+    const tryUnmute = () => {
+      try {
+        frame.contentWindow.postMessage(JSON.stringify({ event: "command", func: "unMute", args: [] }), "*");
+        frame.contentWindow.postMessage(JSON.stringify({ event: "command", func: "playVideo", args: [] }), "*");
+      } catch (e) { /* iframe aún no listo, se reintenta abajo */ }
+    };
+    // Reintentos: el player de YouTube tarda un poco en estar listo para recibir comandos
+    setTimeout(tryUnmute, 800);
+    setTimeout(tryUnmute, 1600);
+    setTimeout(tryUnmute, 2600);
   }
 
   function extractYoutubeId(url) {
     const m = url.match(/(?:youtu\.be\/|v=|embed\/)([A-Za-z0-9_-]{11})/);
     return m ? m[1] : null;
+  }
+
+  /**
+   * Extrae el segundo de inicio desde un link de YouTube, si lo trae.
+   * Soporta los formatos que YouTube genera al compartir "desde cierto momento":
+   *   ?t=45s   ?t=90   &start=45   ?t=1m30s   ?t=1h2m3s
+   */
+  function extractYoutubeStart(url) {
+    const m = url.match(/[?&](?:t|start)=([0-9hms]+)/i);
+    if (!m) return 0;
+    const raw = m[1];
+    if (/^\d+$/.test(raw)) return parseInt(raw, 10); // solo segundos: t=90
+    const hms = raw.match(/(?:(\d+)h)?(?:(\d+)m)?(?:(\d+)s)?/i);
+    if (!hms) return 0;
+    const h = parseInt(hms[1] || "0", 10);
+    const mi = parseInt(hms[2] || "0", 10);
+    const s = parseInt(hms[3] || "0", 10);
+    return h * 3600 + mi * 60 + s;
   }
 
   function renderLetter() {
@@ -313,6 +361,7 @@
       if (btn.classList.contains("is-open")) return;
       btn.classList.add("is-open");
       LoveSound.open();
+      startVideoPlayback();
       setTimeout(() => {
         $("#section-hero").style.transition = "opacity .6s ease";
         $("#section-hero").style.opacity = "0";
