@@ -7,11 +7,30 @@ const DEFAULT_CONTENT = {
   song: { url: "", startSeconds: 0 },
   letter: { text: "Escribe aquí tu carta desde /admin.html" },
   gallery: [],
-  loveList: [],
-  ourPlace: { title: "Nuestro lugar", text: "", image: "" },
-  bucketList: [],
-  coupons: [],
-  roulette: [],
+  loveList: [
+    "Tu sonrisa cuando te cuento algo tonto",
+    "Cómo me escuchas sin juzgarme",
+    "Lo bien que me tratas siempre"
+  ],
+  ourPlace: { title: "Nuestro lugar", text: "Cuenta aquí dónde empezó todo entre ustedes.", image: "" },
+  bucketList: [
+    "Nuestro primer viaje juntos",
+    "Ver un amanecer juntos",
+    "Cocinarte algo especial"
+  ],
+  coupons: [
+    "Una noche de películas eligiendo tú",
+    "Un desayuno en la cama",
+    "Un masaje sin quejarme"
+  ],
+  roulette: [
+    { label: "Cena", question: "¿Aceptas cenar conmigo?" },
+    { label: "Cine", question: "¿Vamos al cine?" },
+    { label: "Helado", question: "¿Te invito un helado?" },
+    { label: "Picnic", question: "¿Hacemos un picnic?" },
+    { label: "Baile", question: "¿Bailamos juntos?" },
+    { label: "Sorpresa", question: "¿Te dejas sorprender?" }
+  ],
   anniversary: { date: "", label: "Llevamos juntos" },
   question: {
     text: "¿Quieres ser mi novia?",
@@ -20,7 +39,7 @@ const DEFAULT_CONTENT = {
     successTitle: "¡Dijiste que sí!",
     successText: "Este momento queda guardado para siempre."
   },
-  closing: { text: "", signature: "" },
+  closing: { text: "Gracias por ser parte de mi vida. Esto es solo el comienzo.", signature: "" },
   music: { enabled: true }
 };
 

@@ -24,6 +24,76 @@
 
   let content = structuredClone(EMPTY);
 
+  // Contenido de ejemplo para que ningún campo se vea vacío la primera
+  // vez que se abre el panel. Solo se usa para rellenar lo que el
+  // usuario aún NO ha tocado (campos vacíos o listas sin items); nunca
+  // pisa contenido que ya guardaron.
+  const EXAMPLES = {
+    greeting: "Un regalo para ti",
+    letter: "Escribe aquí tu carta. Cuéntale por qué es especial para ti.",
+    placeTitle: "Nuestro lugar",
+    placeText: "Cuenta aquí dónde empezó todo entre ustedes.",
+    anniversaryLabel: "Llevamos juntos",
+    questionText: "¿Quieres ser mi novia?",
+    questionYes: "Sí",
+    questionNo: "No",
+    questionSuccessTitle: "¡Dijiste que sí!",
+    questionSuccessText: "Este momento queda guardado para siempre.",
+    closingText: "Gracias por ser parte de mi vida. Esto es solo el comienzo.",
+    coupleYou: "Tu amor",
+    coupleLove: "Mi vida",
+    loveList: [
+      "Tu sonrisa cuando te cuento algo tonto",
+      "Cómo me escuchas sin juzgarme",
+      "Lo bien que me tratas siempre"
+    ],
+    bucketList: [
+      "Nuestro primer viaje juntos",
+      "Ver un amanecer juntos",
+      "Cocinarte algo especial"
+    ],
+    coupons: [
+      "Una noche de películas eligiendo tú",
+      "Un desayuno en la cama",
+      "Un masaje sin quejarme"
+    ],
+    roulette: [
+      { label: "Cena", question: "¿Aceptas cenar conmigo?" },
+      { label: "Cine", question: "¿Vamos al cine?" },
+      { label: "Helado", question: "¿Te invito un helado?" },
+      { label: "Picnic", question: "¿Hacemos un picnic?" },
+      { label: "Baile", question: "¿Bailamos juntos?" },
+      { label: "Sorpresa", question: "¿Te dejas sorprender?" }
+    ]
+  };
+
+  function applyExampleFallbacks() {
+    if (!content.coupleNames.you) content.coupleNames.you = EXAMPLES.coupleYou;
+    if (!content.coupleNames.love) content.coupleNames.love = EXAMPLES.coupleLove;
+    if (!content.hero.greeting) content.hero.greeting = EXAMPLES.greeting;
+    if (!content.letter.text) content.letter.text = EXAMPLES.letter;
+    if (!content.ourPlace.title) content.ourPlace.title = EXAMPLES.placeTitle;
+    if (!content.ourPlace.text) content.ourPlace.text = EXAMPLES.placeText;
+    if (!content.anniversary.label) content.anniversary.label = EXAMPLES.anniversaryLabel;
+    if (!content.question.text) content.question.text = EXAMPLES.questionText;
+    if (!content.question.yes) content.question.yes = EXAMPLES.questionYes;
+    if (!content.question.no) content.question.no = EXAMPLES.questionNo;
+    if (!content.question.successTitle) content.question.successTitle = EXAMPLES.questionSuccessTitle;
+    if (!content.question.successText) content.question.successText = EXAMPLES.questionSuccessText;
+    if (!content.closing.text) content.closing.text = EXAMPLES.closingText;
+    if (!content.loveList || !content.loveList.length) content.loveList = EXAMPLES.loveList.slice();
+    if (!content.bucketList || !content.bucketList.length) content.bucketList = EXAMPLES.bucketList.slice();
+    if (!content.coupons || !content.coupons.length) content.coupons = EXAMPLES.coupons.slice();
+    if (!content.roulette || !content.roulette.length) {
+      content.roulette = EXAMPLES.roulette.map(o => Object.assign({}, o));
+    } else {
+      // Normaliza entradas viejas guardadas como texto plano.
+      content.roulette = content.roulette.map(item =>
+        typeof item === "string" ? { label: item, question: item } : item
+      );
+    }
+  }
+
   function showToast(msg) {
     const t = $("#toast");
     t.textContent = msg;
@@ -153,6 +223,7 @@
         }
       }
     } catch (e) { /* keep defaults */ }
+    applyExampleFallbacks();
   }
 
   /* ---------------- image handling ---------------- */
@@ -199,16 +270,55 @@
   const LIST_CONTAINERS = {
     loveList: "lovelist-list",
     bucketList: "bucketlist-list",
-    coupons: "coupons-list",
-    roulette: "roulette-list"
+    coupons: "coupons-list"
   };
 
   function renderAllTextLists() {
     Object.entries(LIST_CONTAINERS).forEach(([key, containerId]) => renderTextList(containerId, key));
   }
 
+  /* ---------------- ruleta (palabra en la rueda + pregunta al caer) ---------------- */
+
+  function renderRouletteList() {
+    const container = $("#roulette-list");
+    container.innerHTML = "";
+    (content.roulette || []).forEach((item, i) => {
+      const row = document.createElement("div");
+      row.className = "repeat-row repeat-row--roulette";
+      row.innerHTML = `
+        <div class="roulette-fields">
+          <input type="text" class="roulette-label" placeholder="Palabra en la ruleta (ej: Cena)" value="${escapeAttr(item.label || "")}">
+          <input type="text" class="roulette-question" placeholder="Pregunta al caer ahí (ej: ¿Aceptas cenar conmigo?)" value="${escapeAttr(item.question || "")}">
+        </div>
+        <button type="button" class="remove-btn" aria-label="Eliminar">×</button>
+      `;
+      row.querySelector(".roulette-label").addEventListener("input", e => {
+        content.roulette[i].label = e.target.value;
+      });
+      row.querySelector(".roulette-question").addEventListener("input", e => {
+        content.roulette[i].question = e.target.value;
+      });
+      row.querySelector(".remove-btn").addEventListener("click", () => {
+        content.roulette.splice(i, 1);
+        renderRouletteList();
+      });
+      container.appendChild(row);
+    });
+  }
+
+  function bindRouletteAdd() {
+    const btn = document.querySelector('[data-add="roulette"]');
+    if (!btn) return;
+    btn.addEventListener("click", () => {
+      content.roulette = content.roulette || [];
+      content.roulette.push({ label: "", question: "" });
+      renderRouletteList();
+    });
+  }
+
   function bindAddButtonsFixed() {
     $$("[data-add]").forEach(btn => {
+      if (btn.dataset.add === "roulette") return; // maneja su propio shape {label,question}
       btn.addEventListener("click", () => {
         const key = btn.dataset.add;
         content[key] = content[key] || [];
@@ -311,6 +421,7 @@
 
     renderGalleryList();
     renderAllTextLists();
+    renderRouletteList();
     renderPlaceImagePreview();
   }
 
@@ -337,7 +448,7 @@
     content.loveList = (content.loveList || []).filter(v => v.trim() !== "");
     content.bucketList = (content.bucketList || []).filter(v => v.trim() !== "");
     content.coupons = (content.coupons || []).filter(v => v.trim() !== "");
-    content.roulette = (content.roulette || []).filter(v => v.trim() !== "");
+    content.roulette = (content.roulette || []).filter(item => (item.label || "").trim() !== "" || (item.question || "").trim() !== "");
   }
 
   async function save() {
@@ -413,6 +524,7 @@
   async function boot() {
     bindGate();
     bindAddButtonsFixed();
+    bindRouletteAdd();
     bindGalleryUpload();
     bindPlaceImageUpload();
     bindSongUpload();

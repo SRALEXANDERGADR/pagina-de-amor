@@ -248,16 +248,18 @@
   }
 
   function renderRoulette() {
-    const options = CONTENT.roulette || [];
+    const raw = CONTENT.roulette || [];
+    // Compatibilidad: entradas viejas guardadas como texto plano.
+    const options = raw.map(item => typeof item === "string" ? { label: item, question: item } : item);
     if (options.length < 2) return;
     const wheel = $("#roulette-wheel");
     const n = options.length;
     const colors = ["#7c2942", "#b45166", "#c9a15a", "#591d30", "#eccdd0", "#9c4a5c"];
-    wheel.innerHTML = options.map((label, i) => {
+    wheel.innerHTML = options.map((opt, i) => {
       const angle = (360 / n) * i;
       const color = colors[i % colors.length];
       return `<div class="roulette-slice" style="transform: rotate(${angle}deg); clip-path: polygon(50% 50%, 0 0, 100% 0); background:${color};">
-        <span>${escapeHtml(label)}</span>
+        <span>${escapeHtml(opt.label || "")}</span>
       </div>`;
     }).join("");
     // Simpler & robust: use conic-gradient background instead of clipped slices for color wheel
@@ -293,7 +295,8 @@
         spinning = false;
         LoveSound.reveal();
         burstConfetti(40);
-        openModal({ title: "¡Elegido!", text: options[chosenIndex] });
+        const chosen = options[chosenIndex];
+        openModal({ title: "¡Elegido!", text: chosen.question || chosen.label || "" });
       }, 3300);
     });
 
