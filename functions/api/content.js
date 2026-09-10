@@ -2,6 +2,7 @@ const DEFAULT_CONTENT = {
   coupleNames: { you: "Tu amor", love: "Mi vida" },
   hero: { greeting: "Un regalo para ti" },
   video: { youtubeUrl: "" },
+  song: { url: "" },
   letter: { text: "Escribe aquí tu carta desde /admin.html" },
   gallery: [],
   loveList: [],
@@ -36,7 +37,11 @@ export async function onRequestGet(context) {
   try {
     const raw = await env.CONTENT_KV.get(KV_KEY);
     const data = raw ? JSON.parse(raw) : DEFAULT_CONTENT;
-    return json(data);
+    // Cache corto en el navegador/CDN: la página se abre varias veces en
+    // pocos minutos (compartida por link) y no hace falta pedir a KV de
+    // nuevo cada vez. El admin sigue viendo cambios frescos porque su
+    // fetch usa cache:"no-store" e ignora este header.
+    return json(data, { headers: { "Cache-Control": "public, max-age=30, stale-while-revalidate=120" } });
   } catch (err) {
     return json(DEFAULT_CONTENT);
   }

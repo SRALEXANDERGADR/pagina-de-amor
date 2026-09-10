@@ -47,18 +47,14 @@
   </section>
 
   <!-- contenido revelado tras abrir el sobre -->
-  <div id="reveal-content" class="reveal-content">
+  <div id="reveal-content" class="reveal-content" hidden>
 
-    <!-- VIDEO -->
-    <section id="section-video" class="section section-video" hidden>
+    <!-- NUESTRA CANCIÓN (audio) -->
+    <section id="section-song" class="section section-song" hidden>
       <div class="section-inner">
         <p class="section-kicker">Nuestra canción</p>
-        <div class="video-frame">
-          <iframe id="video-frame" src="" title="Video" frameborder="0"
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-            allowfullscreen loading="lazy"></iframe>
-          <button id="video-unmute" class="video-unmute" type="button" hidden>🔊 Toca para activar el sonido</button>
-        </div>
+        <div class="song-note" aria-hidden="true">♫</div>
+        <audio id="song-audio" preload="none"></audio>
       </div>
     </section>
 

@@ -7,7 +7,8 @@
   const DEFAULT_CONTENT = {
     coupleNames: { you: "Tu amor", love: "Mi vida" },
     hero: { greeting: "Un regalo para ti" },
-    video: { youtubeUrl: "" },
+    video: { youtubeUrl: "" }, // ya no se usa (se dejó por compatibilidad con contenido viejo)
+    song: { url: "" },
     letter: { text: "Escribe aquí tu carta desde el panel de administración." },
     gallery: [],
     loveList: [],
@@ -25,11 +26,23 @@
   let galleryIndex = 0;
 
   async function loadContent() {
-    try {
-      const res = await fetch("/api/content", { cache: "no-store" });
+    // Deja que el navegador use su caché normal (respeta el Cache-Control
+    // que ahora manda /api/content) en vez de forzar red cada vez.
+    const fetchContent = fetch("/api/content").then(res => {
       if (!res.ok) throw new Error("bad status");
-      const data = await res.json();
-      CONTENT = Object.assign({}, DEFAULT_CONTENT, data);
+      return res.json();
+    });
+
+    // Salvavidas: si la red va muy lenta (datos móviles, KV frío, etc.)
+    // no dejamos la pantalla de carga pegada para siempre. A los 6s
+    // seguimos con los valores por defecto y la app arranca igual.
+    const timeout = new Promise((resolve) => {
+      setTimeout(() => resolve(null), 6000);
+    });
+
+    try {
+      const data = await Promise.race([fetchContent, timeout]);
+      if (data) CONTENT = Object.assign({}, DEFAULT_CONTENT, data);
     } catch (e) {
       CONTENT = DEFAULT_CONTENT;
     }
@@ -53,82 +66,44 @@
     setText("#hero-name-you", CONTENT.coupleNames.you || "—");
   }
 
-  function renderVideo() {
-    const url = CONTENT.video?.youtubeUrl;
+  function renderSong() {
+    const url = CONTENT.song?.url;
     if (!url) return;
-    const id = extractYoutubeId(url);
-    if (!id) return;
-    const frame = $("#video-frame");
-    frame.dataset.embedId = id;
-    frame.dataset.embedStart = extractYoutubeStart(url);
-    showSection("section-video");
+    const audio = $("#song-audio");
+    audio.src = url;
+    showSection("section-song");
   }
 
   /**
-   * Carga el iframe de YouTube y arranca la reproducción automáticamente.
-   * Se llama en el mismo clic con el que se abre el sobre, para poder
-   * aprovechar ese gesto del usuario y que los navegadores permitan
-   * reproducir con sonido (si no, sólo permiten autoplay silenciado).
+   * Arranca la canción. Se llama en el mismo clic con el que se abre el
+   * sobre: al ser un <audio> del mismo sitio (no un iframe de otro
+   * dominio), reproducir con sonido dentro de ese mismo gesto del
+   * usuario sí funciona de forma confiable en cualquier navegador.
    */
-  function startVideoPlayback() {
-    const frame = $("#video-frame");
-    const id = frame?.dataset.embedId;
-    if (!id || frame.src) return; // ya cargado o no hay video configurado
+  function playSong() {
+    const audio = $("#song-audio");
+    const btn = $("#music-toggle");
+    if (!audio || !audio.src) return;
 
-    const start = parseInt(frame.dataset.embedStart || "0", 10);
-    const startParam = start > 0 ? `&start=${start}` : "";
-    const origin = encodeURIComponent(window.location.origin);
-    frame.src = `https://www.youtube.com/embed/${id}?rel=0&modestbranding=1&autoplay=1&mute=1&playsinline=1&enablejsapi=1&origin=${origin}${startParam}`;
-
-    const tryUnmute = () => {
-      try {
-        frame.contentWindow.postMessage(JSON.stringify({ event: "command", func: "unMute", args: [] }), "*");
-        frame.contentWindow.postMessage(JSON.stringify({ event: "command", func: "playVideo", args: [] }), "*");
-      } catch (e) { /* iframe aún no listo, se reintenta abajo */ }
-    };
-    // Reintentos: el player de YouTube tarda un poco en estar listo para recibir comandos
-    setTimeout(tryUnmute, 800);
-    setTimeout(tryUnmute, 1600);
-    setTimeout(tryUnmute, 2600);
-
-    // Respaldo visible: algunos navegadores (sobre todo iOS/Safari) bloquean
-    // el audio automático aunque se intente activarlo desde JS. Mostramos un
-    // botón para activarlo con un toque directo, que sí cuenta como gesto
-    // de usuario válido y garantiza que el sonido funcione.
-    const unmuteBtn = $("#video-unmute");
-    if (unmuteBtn) {
-      setTimeout(() => { unmuteBtn.hidden = false; }, 1200);
-      unmuteBtn.addEventListener("click", () => {
-        try {
-          frame.contentWindow.postMessage(JSON.stringify({ event: "command", func: "unMute", args: [] }), "*");
-          frame.contentWindow.postMessage(JSON.stringify({ event: "command", func: "playVideo", args: [] }), "*");
-        } catch (e) { /* no-op */ }
-        unmuteBtn.hidden = true;
+    audio.loop = true;
+    audio.volume = 0.85;
+    audio.play()
+      .then(() => {
+        if (btn) {
+          btn.hidden = false;
+          btn.setAttribute("aria-pressed", "true");
+          btn.setAttribute("aria-label", "Silenciar canción");
+        }
+      })
+      .catch(() => {
+        // Si algún navegador igual lo bloquea, dejamos el botón de
+        // notita visible para activarla con un toque directo.
+        if (btn) {
+          btn.hidden = false;
+          btn.setAttribute("aria-pressed", "false");
+          btn.setAttribute("aria-label", "Reproducir canción");
+        }
       });
-    }
-  }
-
-  function extractYoutubeId(url) {
-    const m = url.match(/(?:youtu\.be\/|v=|embed\/)([A-Za-z0-9_-]{11})/);
-    return m ? m[1] : null;
-  }
-
-  /**
-   * Extrae el segundo de inicio desde un link de YouTube, si lo trae.
-   * Soporta los formatos que YouTube genera al compartir "desde cierto momento":
-   *   ?t=45s   ?t=90   &start=45   ?t=1m30s   ?t=1h2m3s
-   */
-  function extractYoutubeStart(url) {
-    const m = url.match(/[?&](?:t|start)=([0-9hms]+)/i);
-    if (!m) return 0;
-    const raw = m[1];
-    if (/^\d+$/.test(raw)) return parseInt(raw, 10); // solo segundos: t=90
-    const hms = raw.match(/(?:(\d+)h)?(?:(\d+)m)?(?:(\d+)s)?/i);
-    if (!hms) return 0;
-    const h = parseInt(hms[1] || "0", 10);
-    const mi = parseInt(hms[2] || "0", 10);
-    const s = parseInt(hms[3] || "0", 10);
-    return h * 3600 + mi * 60 + s;
   }
 
   function renderLetter() {
@@ -389,7 +364,7 @@
       if (btn.classList.contains("is-open")) return;
       btn.classList.add("is-open");
       LoveSound.open();
-      startVideoPlayback();
+      playSong();
       setTimeout(() => {
         const hero = $("#section-hero");
         hero.style.transition = "opacity .6s ease";
@@ -418,11 +393,19 @@
 
   function setupMusicToggle() {
     const btn = $("#music-toggle");
-    if (CONTENT.music?.enabled === false) { btn.hidden = true; return; }
+    const audio = $("#song-audio");
+    // Sin canción configurada, el botón no tiene nada que controlar.
+    if (!audio || !audio.src) { btn.hidden = true; return; }
     btn.addEventListener("click", () => {
-      const playing = LoveSound.toggleMusic();
-      btn.setAttribute("aria-pressed", String(playing));
-      btn.setAttribute("aria-label", playing ? "Silenciar música" : "Activar música");
+      if (audio.paused) {
+        audio.play().catch(() => {});
+        btn.setAttribute("aria-pressed", "true");
+        btn.setAttribute("aria-label", "Silenciar canción");
+      } else {
+        audio.pause();
+        btn.setAttribute("aria-pressed", "false");
+        btn.setAttribute("aria-label", "Reproducir canción");
+      }
     });
   }
 
@@ -541,7 +524,7 @@
       await loadContent();
 
       renderHero();
-      renderVideo();
+      renderSong();
       renderLetter();
       renderGallery();
       renderLoveList();
