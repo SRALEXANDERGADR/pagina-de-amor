@@ -8,7 +8,7 @@
   const EMPTY = {
     coupleNames: { you: "", love: "" },
     hero: { greeting: "" },
-    song: { url: "" },
+    song: { url: "", startSeconds: 0 },
     letter: { text: "" },
     gallery: [],
     loveList: [],
@@ -185,6 +185,7 @@
     $("#f-love").value = content.coupleNames.love || "";
     $("#f-greeting").value = content.hero.greeting || "";
     $("#f-song").value = content.song.url || "";
+    $("#f-song-start").value = content.song.startSeconds || 0;
     $("#f-letter").value = content.letter.text || "";
     $("#f-place-title").value = content.ourPlace.title || "";
     $("#f-place-text").value = content.ourPlace.text || "";
@@ -209,6 +210,7 @@
     content.coupleNames.love = $("#f-love").value.trim();
     content.hero.greeting = $("#f-greeting").value.trim();
     content.song.url = $("#f-song").value.trim();
+    content.song.startSeconds = Math.max(0, parseInt($("#f-song-start").value, 10) || 0);
     content.letter.text = $("#f-letter").value;
     content.ourPlace.title = $("#f-place-title").value.trim();
     content.ourPlace.text = $("#f-place-text").value;

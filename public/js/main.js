@@ -8,7 +8,7 @@
     coupleNames: { you: "Tu amor", love: "Mi vida" },
     hero: { greeting: "Un regalo para ti" },
     video: { youtubeUrl: "" }, // ya no se usa (se dejó por compatibilidad con contenido viejo)
-    song: { url: "" },
+    song: { url: "", startSeconds: 0 },
     letter: { text: "Escribe aquí tu carta desde el panel de administración." },
     gallery: [],
     loveList: [],
@@ -71,6 +71,7 @@
     if (!url) return;
     const audio = $("#song-audio");
     audio.src = url;
+    audio.dataset.start = CONTENT.song?.startSeconds || 0;
     showSection("section-song");
   }
 
@@ -85,10 +86,30 @@
     const btn = $("#music-toggle");
     if (!audio || !audio.src) return;
 
-    audio.loop = true;
+    const start = parseFloat(audio.dataset.start || "0");
+    const seekToStart = () => {
+      if (start > 0) { try { audio.currentTime = start; } catch (e) { /* aún no listo */ } }
+    };
+
+    // Si el navegador ya tiene la metadata (duración/posiciones) lista,
+    // saltamos de una vez; si no, en cuanto llegue la reintentamos.
+    if (start > 0) {
+      if (audio.readyState >= 1) seekToStart();
+      else audio.addEventListener("loadedmetadata", seekToStart, { once: true });
+    }
+
     audio.volume = 0.85;
+
+    // Repetición manual (en vez de audio.loop) para que cada vuelta
+    // regrese al mismo punto de inicio configurado, no al segundo 0.
+    audio.onended = () => {
+      seekToStart();
+      audio.play().catch(() => {});
+    };
+
     audio.play()
       .then(() => {
+        seekToStart(); // por si la metadata llegó antes de este punto
         if (btn) {
           btn.hidden = false;
           btn.setAttribute("aria-pressed", "true");

@@ -2,7 +2,7 @@ const DEFAULT_CONTENT = {
   coupleNames: { you: "Tu amor", love: "Mi vida" },
   hero: { greeting: "Un regalo para ti" },
   video: { youtubeUrl: "" },
-  song: { url: "" },
+  song: { url: "", startSeconds: 0 },
   letter: { text: "Escribe aquí tu carta desde /admin.html" },
   gallery: [],
   loveList: [],
