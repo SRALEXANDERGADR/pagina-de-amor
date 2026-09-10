@@ -71,3 +71,59 @@ export async function putFile(path, base64Content, token, message, sha) {
   }
   return res.json();
 }
+
+async function ghFetch(path, token, options = {}) {
+  const res = await fetch(`https://api.github.com/repos/${OWNER}/${REPO}${path}`, {
+    ...options,
+    headers: { ...githubHeaders(token), "content-type": "application/json", ...(options.headers || {}) }
+  });
+  if (!res.ok) {
+    const detail = await res.text().catch(() => "");
+    throw new Error(`GitHub ${options.method || "GET"} ${path} -> ${res.status}: ${detail.slice(0, 300)}`);
+  }
+  return res.json();
+}
+
+/**
+ * Crea o actualiza un archivo GRANDE (>1MB, ej. audio) usando la Git Data
+ * API (blobs + trees + commits) en vez de la API de "contents", que solo
+ * acepta archivos de hasta ~1MB. Hace un commit propio igual que putFile,
+ * pero en 5 llamadas a la API en vez de 1.
+ */
+export async function putLargeFile(path, base64Content, token, message) {
+  // 1. Subir el contenido como blob
+  const blob = await ghFetch(`/git/blobs`, token, {
+    method: "POST",
+    body: JSON.stringify({ content: base64Content, encoding: "base64" })
+  });
+
+  // 2. Sha del commit actual de la rama
+  const ref = await ghFetch(`/git/ref/heads/${BRANCH}`, token);
+  const baseCommitSha = ref.object.sha;
+
+  // 3. Sha del árbol de ese commit
+  const baseCommit = await ghFetch(`/git/commits/${baseCommitSha}`, token);
+
+  // 4. Nuevo árbol con el archivo agregado/reemplazado
+  const tree = await ghFetch(`/git/trees`, token, {
+    method: "POST",
+    body: JSON.stringify({
+      base_tree: baseCommit.tree.sha,
+      tree: [{ path, mode: "100644", type: "blob", sha: blob.sha }]
+    })
+  });
+
+  // 5. Nuevo commit apuntando a ese árbol
+  const commit = await ghFetch(`/git/commits`, token, {
+    method: "POST",
+    body: JSON.stringify({ message, tree: tree.sha, parents: [baseCommitSha] })
+  });
+
+  // 6. Mover la rama al nuevo commit
+  await ghFetch(`/git/refs/heads/${BRANCH}`, token, {
+    method: "PATCH",
+    body: JSON.stringify({ sha: commit.sha })
+  });
+
+  return commit;
+}

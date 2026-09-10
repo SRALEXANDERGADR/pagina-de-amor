@@ -1,9 +1,15 @@
-import { putFile } from "../_github.js";
+import { putFile, putLargeFile } from "../_github.js";
 
 // Límite de la API de "contents" de GitHub: ~1MB por archivo. Las fotos
 // del panel se comprimen antes de llegar aquí, así que esto casi nunca
 // debería dispararse; es solo un cinturón de seguridad.
-const MAX_B64_LEN = 1_300_000; // ~950KB reales de imagen
+const MAX_IMAGE_B64_LEN = 1_300_000; // ~950KB reales de imagen
+
+// El audio va por la Git Data API (putLargeFile), que sí soporta archivos
+// grandes, pero igual ponemos un techo razonable para no colgar la función
+// ni pasarnos del límite de subida de Cloudflare Pages.
+const MAX_AUDIO_B64_LEN = 14_000_000; // ~10.5MB reales de audio
+const AUDIO_EXTENSIONS = ["mp3", "m4a", "wav", "ogg", "aac"];
 
 function json(data, init = {}) {
   return new Response(JSON.stringify(data), {
@@ -31,14 +37,41 @@ export async function onRequestPost(context) {
   }
 
   const dataUrl = body.dataUrl || "";
-  const match = dataUrl.match(/^data:image\/(jpeg|jpg|png|webp);base64,(.+)$/s);
+  const commaIdx = dataUrl.indexOf(",");
+  if (!dataUrl.startsWith("data:") || commaIdx === -1) {
+    return json({ error: "dataUrl inválido" }, { status: 400 });
+  }
+  const base64 = dataUrl.slice(commaIdx + 1);
+
+  // ---- AUDIO: se identifica por body.kind, no por el mime type del
+  // navegador (para .m4a algunos navegadores no reportan un mime
+  // consistente). La extensión viene del nombre del archivo original.
+  if (body.kind === "audio") {
+    const ext = String(body.ext || "").toLowerCase().replace(/[^a-z0-9]/g, "");
+    if (!AUDIO_EXTENSIONS.includes(ext)) {
+      return json({ error: "formato de audio no soportado (usa mp3, m4a, wav, ogg o aac)" }, { status: 400 });
+    }
+    if (base64.length > MAX_AUDIO_B64_LEN) {
+      return json({ error: "audio muy pesado (máx. ~10MB), recorta o comprime la canción" }, { status: 413 });
+    }
+    const filename = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+    const path = `public/audio/${filename}`;
+    try {
+      await putLargeFile(path, base64, env.GITHUB_TOKEN, `Sube canción ${filename}`);
+      return json({ ok: true, path: `/audio/${filename}` });
+    } catch (err) {
+      return json({ error: "github upload failed", detail: String(err.message || err) }, { status: 502 });
+    }
+  }
+
+  // ---- IMAGEN (comportamiento original) ----
+  const match = dataUrl.match(/^data:image\/(jpeg|jpg|png|webp);base64,/s);
   if (!match) {
     return json({ error: "formato de imagen no soportado" }, { status: 400 });
   }
   const ext = match[1] === "jpg" ? "jpeg" : match[1];
-  const base64 = match[2];
 
-  if (base64.length > MAX_B64_LEN) {
+  if (base64.length > MAX_IMAGE_B64_LEN) {
     return json({ error: "imagen muy pesada, comprime más o reduce el tamaño" }, { status: 413 });
   }
 

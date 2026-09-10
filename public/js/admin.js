@@ -82,6 +82,63 @@
     return data.path;
   }
 
+  function readFileAsDataUrl(file) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result);
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  }
+
+  /**
+   * Sube un archivo de audio (mp3/m4a/wav/ogg) tal cual, sin comprimir,
+   * vía /api/upload con kind:"audio". Usa la Git Data API del lado del
+   * servidor porque estos archivos suelen pesar más del límite de la API
+   * de "contents" (~1MB) que sí aplica a las fotos.
+   */
+  async function uploadAudio(file) {
+    const dataUrl = await readFileAsDataUrl(file);
+    const ext = (file.name.split(".").pop() || "").toLowerCase();
+    const res = await fetch("/api/upload", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "x-admin-password": getPassword() },
+      body: JSON.stringify({ dataUrl, kind: "audio", ext })
+    });
+    if (res.status === 401) {
+      sessionStorage.removeItem(PW_KEY);
+      showToast("Sesión expirada, vuelve a entrar");
+      location.reload();
+      throw new Error("unauthorized");
+    }
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      throw new Error(data.error || "upload failed");
+    }
+    const data = await res.json();
+    return data.path;
+  }
+
+  function bindSongUpload() {
+    $("#f-song-upload-btn").addEventListener("click", () => $("#f-song-file").click());
+    $("#f-song-file").addEventListener("change", async (e) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+      try {
+        showToast("Subiendo canción…");
+        const path = await uploadAudio(file);
+        content.song.url = path;
+        $("#f-song").value = path;
+        showToast("Canción subida — no olvides Guardar cambios");
+      } catch (err) {
+        if (err.message !== "unauthorized") {
+          showToast(err.message && err.message !== "upload failed" ? err.message : "No se pudo subir la canción");
+        }
+      }
+      e.target.value = "";
+    });
+  }
+
   async function loadContent() {
     try {
       const res = await fetch("/api/content", { cache: "no-store" });
@@ -358,6 +415,7 @@
     bindAddButtonsFixed();
     bindGalleryUpload();
     bindPlaceImageUpload();
+    bindSongUpload();
     $("#save-btn").addEventListener("click", save);
 
     const savedPw = getPassword();

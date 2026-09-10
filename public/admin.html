@@ -51,7 +51,11 @@
       <label>Empezar en el segundo
         <input id="f-song-start" type="number" min="0" step="1" placeholder="0">
       </label>
-      <p class="field-hint">Sube el mp3 a <code>public/audio/</code> del proyecto (con tu git de siempre, o desde el editor web de GitHub) y aquí pon la ruta, por ejemplo <code>/audio/cancion.mp3</code>. Suena sola al abrir el sobre. Si pones un segundo de inicio, se salta la intro y cuando termine vuelve a repetir desde ese mismo punto.</p>
+      <label class="file-label">
+        <input id="f-song-file" type="file" accept="audio/*" hidden>
+        <span class="btn btn-add" id="f-song-upload-btn">Subir canción</span>
+      </label>
+      <p class="field-hint">Sube el archivo directo desde aquí (mp3, m4a, wav o ogg, hasta ~10MB) y la ruta de arriba se llena sola. También puedes escribirla a mano si ya subiste el archivo por git. Suena sola al abrir el sobre. Si pones un segundo de inicio, se salta la intro y cuando termine vuelve a repetir desde ese mismo punto.</p>
     </section>
 
     <section class="card">
