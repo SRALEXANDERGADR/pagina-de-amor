@@ -34,15 +34,29 @@
 
   function getPassword() { return sessionStorage.getItem(PW_KEY) || ""; }
 
+  /**
+   * Devuelve { ok, networkError }. Antes, cualquier fallo de red o una
+   * respuesta que no fuera JSON (por ejemplo si /api/verify no existe
+   * todavía porque el sitio no se desplegó como Cloudflare Pages con
+   * Functions) hacía que este fetch lanzara un error sin capturar: el
+   * formulario quedaba "congelado" sin mostrar ningún mensaje. Ahora
+   * cualquier fallo se captura y se distingue de una contraseña
+   * simplemente incorrecta.
+   */
   async function verifyPassword(pw) {
-    const res = await fetch("/api/verify", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ password: pw })
-    });
-    if (!res.ok) return false;
-    const data = await res.json();
-    return !!data.ok;
+    try {
+      const res = await fetch("/api/verify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ password: pw })
+      });
+      if (res.status === 401 || res.status === 400) return { ok: false };
+      if (!res.ok) return { ok: false, networkError: true };
+      const data = await res.json();
+      return { ok: !!data.ok };
+    } catch (err) {
+      return { ok: false, networkError: true };
+    }
   }
 
   /**
@@ -307,16 +321,34 @@
   }
 
   function bindGate() {
-    $("#gate-form").addEventListener("submit", async (e) => {
+    const form = $("#gate-form");
+    const input = $("#gate-password");
+    const errorEl = $("#gate-error");
+    const submitBtn = form.querySelector("button[type=submit]");
+
+    form.addEventListener("submit", async (e) => {
       e.preventDefault();
-      const pw = $("#gate-password").value;
-      $("#gate-error").hidden = true;
-      const ok = await verifyPassword(pw);
+      const pw = input.value;
+      errorEl.hidden = true;
+
+      submitBtn.disabled = true;
+      const originalLabel = submitBtn.textContent;
+      submitBtn.textContent = "Comprobando…";
+
+      const { ok, networkError } = await verifyPassword(pw);
+
+      submitBtn.disabled = false;
+      submitBtn.textContent = originalLabel;
+
       if (ok) {
         sessionStorage.setItem(PW_KEY, pw);
         enterPanel();
       } else {
-        $("#gate-error").hidden = false;
+        errorEl.textContent = networkError
+          ? "No se pudo conectar. Revisa tu conexión e intenta de nuevo."
+          : "Contraseña incorrecta.";
+        errorEl.hidden = false;
+        input.select();
       }
     });
   }
@@ -330,9 +362,12 @@
 
     const savedPw = getPassword();
     if (savedPw) {
-      const ok = await verifyPassword(savedPw);
+      const { ok, networkError } = await verifyPassword(savedPw);
       if (ok) { await enterPanel(); return; }
-      sessionStorage.removeItem(PW_KEY);
+      // Si fue un error de red (no una contraseña rechazada), no borramos
+      // la sesión guardada: puede que sí fuera correcta y solo falló la
+      // conexión momentáneamente. Se reintentará la próxima vez que entre.
+      if (!networkError) sessionStorage.removeItem(PW_KEY);
     }
   }
 

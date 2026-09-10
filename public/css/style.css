@@ -64,11 +64,15 @@ button{ font-family: inherit; cursor:pointer; }
   position: fixed; inset:0; z-index: 100;
   display:flex; align-items:center; justify-content:center;
   background: var(--paper);
+  transition: opacity .5s ease;
 }
+.loading-screen.is-hiding{ opacity: 0; }
 .loading-heart{
   font-size: 2.4rem; color: var(--wine);
   animation: pulse 1.1s ease-in-out infinite;
 }
+.app{ opacity: 0; transition: opacity .6s ease; }
+.app.is-visible{ opacity: 1; }
 @keyframes pulse{
   0%,100%{ transform: scale(0.85); opacity:.6; }
   50%{ transform: scale(1.05); opacity:1; }
@@ -78,7 +82,10 @@ button{ font-family: inherit; cursor:pointer; }
    MUSIC TOGGLE
    ========================================================== */
 .music-toggle{
-  position: fixed; top: 18px; right: 18px; z-index: 70;
+  position: fixed; z-index: 70;
+  /* respeta el notch / Dynamic Island / cámara en isla en Android */
+  top: max(18px, env(safe-area-inset-top));
+  right: max(18px, env(safe-area-inset-right));
   width: 46px; height: 46px; border-radius: 50%;
   border: 1px solid rgba(124,41,66,0.25);
   background: rgba(251,241,231,0.85);
@@ -100,7 +107,7 @@ button{ font-family: inherit; cursor:pointer; }
 .app{ position: relative; z-index: 1; }
 
 .section{
-  padding: 96px 24px;
+  padding: 96px max(24px, env(safe-area-inset-right)) 96px max(24px, env(safe-area-inset-left));
   position: relative;
 }
 .section-inner{
@@ -158,10 +165,13 @@ button{ font-family: inherit; cursor:pointer; }
    HERO
    ========================================================== */
 .hero{
+  /* fallback para navegadores sin soporte de svh (Android/WebView viejos) */
+  min-height: 100vh;
   min-height: 100svh;
   display:flex; flex-direction:column; align-items:center; justify-content:center;
   text-align:center;
-  padding: 40px 24px;
+  padding: max(40px, env(safe-area-inset-top)) max(24px, env(safe-area-inset-right))
+           40px max(24px, env(safe-area-inset-left));
   position: relative;
   background:
     radial-gradient(circle at 30% 20%, var(--blush-soft), transparent 55%),
@@ -482,7 +492,8 @@ button{ font-family: inherit; cursor:pointer; }
   position: fixed; inset:0; z-index:80;
   background: rgba(43,20,24,.55);
   display:flex; align-items:center; justify-content:center;
-  padding: 24px;
+  padding: max(24px, env(safe-area-inset-top)) max(24px, env(safe-area-inset-right))
+           max(24px, env(safe-area-inset-bottom)) max(24px, env(safe-area-inset-left));
   animation: fade-in .2s ease both;
 }
 @keyframes fade-in{ from{opacity:0;} to{opacity:1;} }

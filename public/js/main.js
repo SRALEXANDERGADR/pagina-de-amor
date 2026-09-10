@@ -436,16 +436,27 @@
   }
 
   function initScrollReveal() {
-    $$(".section").forEach(s => s.classList.add("reveal"));
-    const obs = new IntersectionObserver((entries) => {
-      entries.forEach(entry => {
-        if (entry.isIntersecting) {
-          entry.target.classList.add("is-visible");
-          obs.unobserve(entry.target);
-        }
+    const sections = $$(".section");
+    sections.forEach(s => s.classList.add("reveal"));
+    // Doble rAF: nos aseguramos de que el navegador pinte el estado
+    // "opacity:0" de .reveal ANTES de crear el observer. Si no, en
+    // secciones que ya están visibles nada más abrir el sobre (canción,
+    // carta) el observer las marca "is-visible" casi en el mismo frame
+    // en el que se añadió "reveal", y la transición nunca llega a verse
+    // (aparecen de golpe en vez de con el fundido).
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        const obs = new IntersectionObserver((entries) => {
+          entries.forEach(entry => {
+            if (entry.isIntersecting) {
+              entry.target.classList.add("is-visible");
+              obs.unobserve(entry.target);
+            }
+          });
+        }, { threshold: 0.15 });
+        sections.forEach(s => obs.observe(s));
       });
-    }, { threshold: 0.15 });
-    $$(".section").forEach(s => obs.observe(s));
+    });
   }
 
   /* ---------------- background petals ---------------- */
@@ -562,8 +573,16 @@
       setupMusicToggle();
       setupModal();
 
-      $("#loading-screen").style.display = "none";
-      $("#app").hidden = false;
+      // Crossfade: la app aparece detrás mientras el loader se desvanece,
+      // en vez del corte seco de antes (display:none de golpe).
+      const loading = $("#loading-screen");
+      const app = $("#app");
+      app.hidden = false;
+      requestAnimationFrame(() => {
+        loading.classList.add("is-hiding");
+        app.classList.add("is-visible");
+      });
+      loading.addEventListener("transitionend", () => { loading.style.display = "none"; }, { once: true });
     } catch (err) {
       console.error("Error al iniciar la página:", err);
       $("#loading-screen").style.display = "none";

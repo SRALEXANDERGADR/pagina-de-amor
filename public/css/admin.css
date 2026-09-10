@@ -8,7 +8,9 @@
 body{ margin:0; background: var(--paper-deep); color: var(--ink); font-family: var(--font-body); }
 h1,h2{ font-family: var(--font-display); font-weight:600; margin:0; }
 input,textarea{
-  font-family: var(--font-body); font-size: .95rem; padding: 10px 12px;
+  /* font-size mínimo de 16px: por debajo de eso, Safari en iPhone hace
+     zoom automático al enfocar el campo (se nota mucho en la contraseña). */
+  font-family: var(--font-body); font-size: 16px; padding: 10px 12px;
   border: 1px solid rgba(43,20,24,.18); border-radius: 10px; background:#fff; width:100%;
 }
 label{ display:flex; flex-direction:column; gap:6px; font-size:.85rem; color: var(--ink-soft); margin-bottom:14px; }
@@ -24,7 +26,13 @@ label{ display:flex; flex-direction:column; gap:6px; font-size:.85rem; color: va
 .checkbox-row input{ width:auto; }
 
 /* GATE */
-.gate{ min-height:100svh; display:flex; align-items:center; justify-content:center; padding:24px; }
+.gate{
+  /* fallback para navegadores sin soporte de svh (Android/WebView viejos) */
+  min-height:100vh; min-height:100svh;
+  display:flex; align-items:center; justify-content:center;
+  padding: max(24px, env(safe-area-inset-top)) max(24px, env(safe-area-inset-right))
+           max(24px, env(safe-area-inset-bottom)) max(24px, env(safe-area-inset-left));
+}
 .gate-card{
   background:#fff; border-radius: var(--radius); padding: 40px 32px; max-width:360px; width:100%;
   text-align:center; box-shadow: 0 20px 50px -25px rgba(89,29,48,.4);
@@ -33,11 +41,13 @@ label{ display:flex; flex-direction:column; gap:6px; font-size:.85rem; color: va
 .gate-sub{ color: var(--ink-soft); font-size:.9rem; margin: 4px 0 20px; }
 .gate-card input{ margin-bottom:14px; }
 .gate-error{ color:#b3261e; font-size:.85rem; margin-top:10px; }
+.gate-card button[disabled]{ opacity:.7; cursor:default; }
 
 /* PANEL */
 .panel-header{
   position: sticky; top:0; z-index:5; background: var(--paper); border-bottom:1px solid rgba(43,20,24,.1);
-  padding: 16px 20px; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px;
+  padding: max(16px, env(safe-area-inset-top)) max(20px, env(safe-area-inset-right)) 16px max(20px, env(safe-area-inset-left));
+  display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px;
 }
 .panel-actions{ display:flex; align-items:center; gap:10px; }
 .save-status{ font-size:.8rem; color: var(--ink-soft); }
