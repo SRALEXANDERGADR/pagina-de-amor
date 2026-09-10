@@ -45,6 +45,29 @@
     return !!data.ok;
   }
 
+  /**
+   * Sube una imagen ya comprimida (dataURL) como archivo real del repo
+   * vía /api/upload, y devuelve la ruta pública (ej: "/gallery/xxxx.jpg").
+   * Esto reemplaza el guardado anterior en base64 dentro del JSON de
+   * contenido — cada foto es su propio archivo/commit en GitHub.
+   */
+  async function uploadImage(dataUrl, folder) {
+    const res = await fetch("/api/upload", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "x-admin-password": getPassword() },
+      body: JSON.stringify({ dataUrl, folder })
+    });
+    if (res.status === 401) {
+      sessionStorage.removeItem(PW_KEY);
+      showToast("Sesión expirada, vuelve a entrar");
+      location.reload();
+      throw new Error("unauthorized");
+    }
+    if (!res.ok) throw new Error("upload failed");
+    const data = await res.json();
+    return data.path;
+  }
+
   async function loadContent() {
     try {
       const res = await fetch("/api/content", { cache: "no-store" });
@@ -126,14 +149,19 @@
 
   /* ---------------- gallery ---------------- */
 
+  // Vista previa local mientras Cloudflare termina de desplegar la foto
+  // nueva (tarda uno o dos minutos en quedar servida en /gallery/...).
+  const galleryPreviewCache = new Map();
+
   function renderGalleryList() {
     const container = $("#gallery-list");
     container.innerHTML = "";
     content.gallery.forEach((item, i) => {
       const row = document.createElement("div");
       row.className = "gallery-item";
+      const previewSrc = galleryPreviewCache.get(item.url) || item.url;
       row.innerHTML = `
-        <img src="${item.url}" alt="">
+        <img src="${previewSrc}" alt="">
         <input type="text" placeholder="Descripción (opcional)" value="${escapeAttr(item.caption || "")}">
         <button type="button" class="remove-btn" aria-label="Eliminar">×</button>
       `;
@@ -151,11 +179,14 @@
       const files = Array.from(e.target.files || []);
       for (const file of files) {
         try {
+          showToast("Subiendo foto…");
           const dataUrl = await compressImage(file);
-          content.gallery.push({ url: dataUrl, caption: "" });
-        } catch (err) { showToast("No se pudo procesar una imagen"); }
+          const path = await uploadImage(dataUrl, "gallery");
+          galleryPreviewCache.set(path, dataUrl);
+          content.gallery.push({ url: path, caption: "" });
+          renderGalleryList();
+        } catch (err) { showToast("No se pudo subir una imagen"); }
       }
-      renderGalleryList();
       e.target.value = "";
     });
   }
@@ -166,16 +197,23 @@
       const file = e.target.files?.[0];
       if (!file) return;
       try {
-        content.ourPlace.image = await compressImage(file, 1200, 0.78);
+        showToast("Subiendo foto…");
+        const dataUrl = await compressImage(file, 1200, 0.78);
+        const path = await uploadImage(dataUrl, "place");
+        placePreviewOverride = dataUrl;
+        content.ourPlace.image = path;
         renderPlaceImagePreview();
-      } catch (err) { showToast("No se pudo procesar la imagen"); }
+      } catch (err) { showToast("No se pudo subir la imagen"); }
       e.target.value = "";
     });
   }
 
+  let placePreviewOverride = null;
+
   function renderPlaceImagePreview() {
     const wrap = $("#f-place-image-preview");
-    wrap.innerHTML = content.ourPlace.image ? `<img src="${content.ourPlace.image}" alt="">` : "";
+    const src = placePreviewOverride || content.ourPlace.image;
+    wrap.innerHTML = src ? `<img src="${src}" alt="">` : "";
   }
 
   /* ---------------- form <-> content sync ---------------- */

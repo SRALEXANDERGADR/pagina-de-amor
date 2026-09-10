@@ -2,9 +2,7 @@ name = "love-page"
 pages_build_output_dir = "public"
 compatibility_date = "2025-01-01"
 
-# Reemplaza "id" con el ID real de tu KV namespace (ver README.md, paso 2).
-# Este archivo es opcional: si prefieres, puedes enlazar el KV namespace
-# directamente desde el dashboard de Cloudflare Pages en vez de aquí.
-[[kv_namespaces]]
-binding = "CONTENT_KV"
-id = "PON_AQUI_EL_ID_DEL_KV_NAMESPACE"
+# Ya no se usa KV. El contenido y las fotos se guardan directo en este
+# mismo repo de GitHub (carpeta content/ y public/gallery, public/place)
+# vía la API de GitHub. Ver README.md para configurar el secreto
+# GITHUB_TOKEN que hace falta para que esto funcione.

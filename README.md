@@ -10,51 +10,60 @@ pública — solo se entra escribiendo la dirección a mano).
 public/            <- esto es lo que se despliega (carpeta raíz del sitio)
   index.html        <- página que verá tu pareja
   admin.html         <- panel privado (tú escribes /admin.html en el navegador)
+  gallery/            <- fotos de la galería (se crean solas al subirlas)
+  place/               <- foto de "nuestro lugar" (se crea sola al subirla)
+  audio/               <- súbele aquí el mp3/m4a de la canción
   css/
   js/
+content/
+  data.json           <- todo el texto del sitio (nombres, carta, vales...)
+                          Se crea solo la primera vez que guardas desde el panel.
 functions/
-  api/content.js     <- GET/POST del contenido (Cloudflare Pages Function)
-  api/verify.js       <- valida la contraseña del panel
-wrangler.toml          <- referencia para desarrollo local / binding de KV
+  _github.js           <- helper compartido para hablar con la API de GitHub
+  api/content.js       <- GET/POST del contenido (ahora lee/escribe en este repo)
+  api/upload.js         <- sube cada foto como archivo real del repo
+  api/verify.js          <- valida la contraseña del panel
+wrangler.toml
 ```
 
-Todo el contenido (nombres, carta, fotos, vales, ruleta, etc.) se guarda en un
-**KV namespace de Cloudflare**, así que cuando editas y guardas desde tu
-panel, se refleja automáticamente en el link que le mandes a ella — sin
-importar que sea otro teléfono.
+**El contenido ya NO se guarda en Cloudflare KV.** Ahora cada vez que guardas
+desde el panel, se hace un commit real a este repo de GitHub: uno para
+`content/data.json` (texto) y uno por cada foto nueva que subas. Eso significa
+que todo el historial de tu página queda en el historial de commits del repo.
 
 ## Pasos para desplegar (Cloudflare Pages)
 
-1. **Sube el proyecto a un repo de GitHub** (con tu flujo habitual de
-   Termux/git que ya usas en tus otros proyectos), o arrastra la carpeta
-   completa desde el dashboard de Cloudflare Pages (Direct Upload).
+1. **Sube el proyecto a GitHub** (ya lo tienes en
+   `github.com/SRALEXANDERGADR/pagina-de-amor`, con tu flujo de Termux/git de
+   siempre).
 
-2. **Crea el KV namespace:**
-   - Dashboard de Cloudflare → **Workers & Pages** → **KV** → *Create namespace*.
-   - Nómbralo, por ejemplo, `love-content`.
-   - Copia su **ID**.
+2. **Crea un token de acceso de GitHub** (reemplaza al KV namespace de antes):
+   - En GitHub → foto de tu perfil → **Settings** → **Developer settings** →
+     **Personal access tokens** → **Fine-grained tokens** → *Generate new token*.
+   - **Repository access:** *Only select repositories* → elige
+     `pagina-de-amor` (nada más, para que el token no pueda tocar tus otros repos).
+   - **Permissions** → **Repository permissions** → **Contents** → **Read and write**.
+   - Ponle una expiración larga (1 año) para no tener que repetir esto seguido.
+   - Genera el token y **cópialo ya** (GitHub solo lo muestra una vez).
 
 3. **Crea el proyecto de Pages** apuntando a la carpeta `public` como
    directorio de salida (build output directory = `public`, sin comando de
-   build).
+   build) — si ya lo tenías creado desde antes, sáltate este paso.
 
-4. **Enlaza el KV namespace al proyecto:**
-   - En el proyecto de Pages → **Settings** → **Functions** →
-     **KV namespace bindings** → *Add binding*.
-   - Variable name: `CONTENT_KV`
-   - KV namespace: el que creaste en el paso 2.
-
-5. **Configura la contraseña del panel como secreto:**
-   - En el mismo proyecto → **Settings** → **Environment variables** →
-     *Add variable* → marca como **Secret**.
-   - Nombre: `ADMIN_PASSWORD`
-   - Valor: la contraseña que tú quieras usar para entrar a `/admin.html`.
-   - Agrégala tanto en **Production** como en **Preview** si vas a probar
+4. **Agrega dos secretos** en el proyecto de Pages → **Settings** →
+   **Environment variables** → *Add variable* → marca cada uno como **Secret**:
+   - `ADMIN_PASSWORD` → la contraseña para entrar a `/admin.html` (si ya la
+     tenías configurada de antes, déjala igual).
+   - `GITHUB_TOKEN` → el token que copiaste en el paso 2.
+   - Agrégalos tanto en **Production** como en **Preview** si vas a probar
      con un deploy de preview.
 
+5. **Si tenías el KV namespace enlazado de una versión anterior, puedes
+   quitarlo** (Settings → Functions → KV namespace bindings → eliminar
+   `CONTENT_KV`) — ya no se usa, pero tampoco estorba si lo dejas.
+
 6. **Vuelve a desplegar** (un nuevo commit, o *Retry deployment*) para que
-   tome el binding y el secreto — los bindings no aplican a deploys ya
-   hechos.
+   tome los secretos nuevos.
 
 7. Entra a `https://tu-sitio.pages.dev/admin.html`, escribe tu contraseña,
    llena todo (nombres, carta, fotos, vales, ruleta, la pregunta, etc.) y
@@ -65,20 +74,31 @@ importar que sea otro teléfono.
 
 ## Notas importantes
 
-- **La página pública no ve ni linkea el panel.** Solo se accede
-  escribiendo `/admin.html` manualmente, tal como pediste.
-- **Las imágenes** se comprimen en el navegador antes de guardarse (quedan
-  dentro del mismo registro de KV), así que no necesitas configurar
-  almacenamiento de archivos aparte. Si en algún momento subes fotos muy
-  pesadas o muchas, y el guardado falla por tamaño, reduce el número de
-  fotos o su resolución.
-- **Los sonidos y la música** están generados con Web Audio (no son
-  archivos de audio), así que no hay nada que subir para que funcionen.
+- **⚠️ El contenido que ya tenías guardado en KV (si llenaste el panel antes
+  de este cambio) no se migra solo.** La nueva versión arranca con los
+  textos de ejemplo hasta que vuelvas a llenar el panel una vez más desde
+  `/admin.html`. Si ya tenías todo cargado y no quieres reescribirlo, avisa
+  antes de desplegar esto para exportarlo primero.
+- **Las fotos** ahora se suben como archivos reales a `public/gallery/` y
+  `public/place/` (un commit por foto), no como texto dentro del JSON. Esto
+  permite tener varias fotos sin chocar con el límite de ~1MB por archivo
+  que tiene la API de contenidos de GitHub — cada foto tiene su propio
+  límite de ~1MB, en vez de compartir uno solo entre todas.
+- **Después de subir una foto**, el panel te la muestra al toque (usa una
+  vista previa local), pero puede tardar uno o dos minutos en verse en el
+  link público mientras Cloudflare hace el redeploy automático que dispara
+  cada commit.
+- **Cada guardado = un deploy nuevo** en Cloudflare Pages (porque cada commit
+  al repo dispara uno). Es gratis y no tiene costo real para un sitio tan
+  chico, solo es bueno saberlo si ves muchos deployments en el dashboard.
+- **La canción** se sube como archivo normal a `public/audio/` (con tu git
+  de siempre, o desde el editor web de GitHub) y en el panel solo pones la
+  ruta, por ejemplo `/audio/cancion.mp3`.
 - **Los vales canjeados** se recuerdan en el propio navegador de quien los
   canjea (no en el servidor), para que cada visita/dispositivo tenga su
   propio progreso.
-- Si algún día quieres cambiar la contraseña del panel, solo actualiza el
-  secreto `ADMIN_PASSWORD` en Cloudflare y vuelve a desplegar.
+- Si el token de GitHub expira o lo revocas, el panel deja de poder guardar
+  (te va a dar un error claro) hasta que generes uno nuevo y actualices el
+  secreto `GITHUB_TOKEN`.
 - El meta tag `noindex` evita que buscadores indexen las páginas, pero la
-  privacidad real depende de que no compartas el link públicamente — igual
-  que en el sitio que te inspiró.
+  privacidad real depende de que no compartas el link públicamente.
