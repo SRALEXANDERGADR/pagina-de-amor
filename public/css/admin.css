@@ -5,6 +5,10 @@
   --radius:16px;
 }
 *{ box-sizing:border-box; }
+/* Mismo motivo que en style.css: .gate usa display:flex, así que sin
+   esto el formulario de contraseña se queda visible aunque JS le
+   ponga hidden=true después de entrar (justo el bug reportado). */
+[hidden]{ display: none !important; }
 body{ margin:0; background: var(--paper-deep); color: var(--ink); font-family: var(--font-body); }
 h1,h2{ font-family: var(--font-display); font-weight:600; margin:0; }
 input,textarea{

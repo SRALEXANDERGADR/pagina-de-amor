@@ -26,6 +26,14 @@
 *{ box-sizing: border-box; }
 html{ scroll-behavior: smooth; }
 
+/* El atributo hidden de HTML se puede pisar por cualquier regla propia
+   que ponga display en ese mismo elemento (ej. .modal{ display:flex }),
+   porque el navegador aplica ESA regla de "hidden -> display:none" como
+   estilo de user-agent, de menor prioridad que cualquier CSS del sitio.
+   Sin esta línea, elementos como #modal (que usa display:flex para
+   centrarse) se quedan visibles aunque JS les ponga hidden=true. */
+[hidden]{ display: none !important; }
+
 body{
   margin:0;
   background: var(--paper);
