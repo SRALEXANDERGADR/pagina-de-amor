@@ -441,6 +441,19 @@ button{ font-family: inherit; cursor:pointer; }
 }
 .roulette-hint{ font-size:.85rem; color: var(--ink-soft); margin-top:14px; }
 
+.roulette-result{
+  margin-top: 34px; padding-top: 30px; border-top: 1px solid var(--paper-deep);
+  animation: unfold .5s ease both;
+}
+.roulette-result-label{
+  font-family: var(--font-script); font-size: 1.6rem; color: var(--wine); margin: 4px 0 18px;
+}
+.roulette-result-question{ margin-bottom: 26px; }
+.roulette-again-link{
+  background:none; border:none; color: var(--ink-soft); font-size:.85rem;
+  margin-top: 22px; text-decoration: underline; text-underline-offset: 3px;
+}
+
 /* ==========================================================
    COUNTER
    ========================================================== */

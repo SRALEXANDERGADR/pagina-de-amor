@@ -247,6 +247,26 @@
     showSection("section-coupons");
   }
 
+  /**
+   * El botón "No" se escapa del cursor/dedo en vez de dejarse presionar.
+   * Se usa tanto en la gran pregunta como en el resultado de la ruleta.
+   */
+  function attachDodge(noBtn, wrap) {
+    function dodge() {
+      const rect = wrap.getBoundingClientRect();
+      const btnRect = noBtn.getBoundingClientRect();
+      const maxX = rect.width - btnRect.width;
+      const maxY = 70;
+      const x = Math.random() * maxX - maxX / 2;
+      const y = Math.random() * maxY - maxY / 2;
+      noBtn.classList.add("is-dodging");
+      noBtn.style.transform = `translate(${x}px, ${y}px)`;
+      LoveSound.dodge();
+    }
+    noBtn.addEventListener("pointerenter", dodge);
+    noBtn.addEventListener("click", dodge);
+  }
+
   function renderRoulette() {
     const raw = CONTENT.roulette || [];
     // Compatibilidad: entradas viejas guardadas como texto plano.
@@ -275,9 +295,11 @@
 
     let currentRotation = 0;
     let spinning = false;
-    $("#roulette-spin").addEventListener("click", () => {
+
+    function spin() {
       if (spinning) return;
       spinning = true;
+      $("#roulette-result").hidden = true;
       const extraSpins = 5 + Math.floor(Math.random() * 3);
       const chosenIndex = Math.floor(Math.random() * n);
       const targetAngle = 360 - (chosenIndex * step + step / 2);
@@ -295,10 +317,37 @@
         spinning = false;
         LoveSound.reveal();
         burstConfetti(40);
-        const chosen = options[chosenIndex];
-        openModal({ title: "¡Elegido!", text: chosen.question || chosen.label || "" });
+        showRouletteResult(options[chosenIndex]);
       }, 3300);
-    });
+    }
+
+    $("#roulette-spin").addEventListener("click", spin);
+    $("#roulette-again").addEventListener("click", spin);
+    attachDodge($("#roulette-no"), $("#roulette-result .question-buttons"));
+
+    function showRouletteResult(chosen) {
+      const result = $("#roulette-result");
+      setText("#roulette-result-label", (chosen.label || "").toUpperCase());
+      setText("#roulette-result-question", chosen.question || chosen.label || "");
+      result.hidden = false;
+      result.scrollIntoView({ behavior: "smooth", block: "nearest" });
+
+      const yesBtn = $("#roulette-yes");
+      const noBtn = $("#roulette-no");
+      noBtn.classList.remove("is-dodging");
+      noBtn.style.transform = "";
+      noBtn.disabled = false;
+      yesBtn.disabled = false;
+      yesBtn.textContent = "Sí";
+
+      yesBtn.onclick = () => {
+        LoveSound.celebrate();
+        burstConfetti(60);
+        yesBtn.disabled = true;
+        noBtn.disabled = true;
+        yesBtn.textContent = "¡Genial! 💕";
+      };
+    }
 
     showSection("section-roulette");
   }
@@ -338,22 +387,13 @@
 
     const noBtn = $("#question-no");
     const yesBtn = $("#question-yes");
-    const wrap = $(".question-buttons");
+    // Con el resultado de la ruleta reusando también la clase
+    // "question-buttons", hay que acotar la búsqueda a esta sección
+    // para no calcular el rebote del botón "No" con el contenedor
+    // equivocado.
+    const wrap = $("#section-question .question-buttons");
 
-    noBtn.addEventListener("pointerenter", dodge);
-    noBtn.addEventListener("click", dodge);
-
-    function dodge() {
-      const rect = wrap.getBoundingClientRect();
-      const btnRect = noBtn.getBoundingClientRect();
-      const maxX = rect.width - btnRect.width;
-      const maxY = 70;
-      const x = Math.random() * maxX - maxX / 2;
-      const y = Math.random() * maxY - maxY / 2;
-      noBtn.classList.add("is-dodging");
-      noBtn.style.transform = `translate(${x}px, ${y}px)`;
-      LoveSound.dodge();
-    }
+    attachDodge(noBtn, wrap);
 
     yesBtn.addEventListener("click", () => {
       LoveSound.celebrate();
