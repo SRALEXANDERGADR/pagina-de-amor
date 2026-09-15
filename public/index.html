@@ -24,6 +24,16 @@
   <div class="loading-heart">♥</div>
 </div>
 
+<!-- PANTALLA DE CIERRE: si LOCKED.enabled es true en main.js, esta es la
+     única pantalla que se muestra; el resto de la página no se carga. -->
+<section id="locked-screen" class="locked-screen" hidden>
+  <div class="locked-card">
+    <span class="locked-heart" aria-hidden="true">♥</span>
+    <p id="locked-message" class="locked-message"></p>
+    <p class="locked-sign">Con cariño,<br><span id="locked-signature">—</span></p>
+  </div>
+</section>
+
 <main id="app" class="app" hidden>
 
   <!-- HERO / SOBRE -->

@@ -25,6 +25,19 @@
   let CONTENT = DEFAULT_CONTENT;
   let galleryIndex = 0;
 
+  // ---------------------------------------------------------------
+  // CIERRE DEL PROYECTO
+  // Si enabled = true, la página ya no carga ni muestra nada del
+  // contenido de abajo (carta, galería, canción, pregunta, etc.) —
+  // solo se ve el mensaje de cierre. Para reabrir la página en el
+  // futuro, basta con volver a poner enabled: false.
+  // ---------------------------------------------------------------
+  const LOCKED = {
+    enabled: true,
+    message: "Hice esto con todo mi cariño. No salió como esperaba, pero no me arrepiento de haberlo intentado. Gracias por tu honestidad, Abi.",
+    signature: "Alex"
+  };
+
   async function loadContent() {
     // Deja que el navegador use su caché normal (respeta el Cache-Control
     // que ahora manda /api/content) en vez de forzar red cada vez.
@@ -595,6 +608,21 @@
 
   async function boot() {
     try {
+      if (LOCKED.enabled) {
+        initPetals();
+        const loading = $("#loading-screen");
+        const locked = $("#locked-screen");
+        setText("#locked-message", LOCKED.message);
+        setText("#locked-signature", LOCKED.signature);
+        locked.hidden = false;
+        requestAnimationFrame(() => {
+          loading.classList.add("is-hiding");
+          locked.classList.add("is-visible");
+        });
+        loading.addEventListener("transitionend", () => { loading.style.display = "none"; }, { once: true });
+        return;
+      }
+
       initPetals();
       await loadContent();
 
